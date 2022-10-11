@@ -1,0 +1,129 @@
+import discord
+from discord.ext import commands
+from newspaper import Article
+import random
+import string
+import nltk
+from sklearn.feature_extraction.text import CountVectorizer
+from sklearn.metrics.pairwise import cosine_similarity
+import numpy as np
+import warnings
+warnings.filterwarnings("ignore")
+
+token = ""
+intents = discord.Intents.all()
+client = discord.Client(intents=intents)
+
+
+article = open('neu.txt', 'r', encoding="utf-8").readlines()
+print(article)
+text = article
+sentence_list = nltk.sent_tokenize(str(text))
+
+
+#output = ''.join([i if ord(i) < 128 else ' ' for i in str])
+ 
+
+def index_sort(list_var):
+  length = len(list_var)
+  list_index = list(range(0, length))
+
+  x = list_var
+  for i in range(length):
+    for j in range(length):
+      if x[list_index[i]] > x[list_index[j]]:
+        temp = list_index[i]
+        list_index[i] = list_index[j]
+        list_index[j] = temp
+      
+  return list_index
+  
+  
+def bot_response(user_input):
+  user_input = user_input.lower()
+  sentence_list.append(user_input)
+  bot_response = ""
+  cm = CountVectorizer().fit_transform(sentence_list)
+  similarity_scores = cosine_similarity(cm[-1], cm)
+  similarity_scores_list = similarity_scores.flatten()
+  index = index_sort(similarity_scores_list)
+  index = index[1:]
+  response_flag = 0
+
+  j = 0
+  for i in range(len(index)):
+    if similarity_scores_list[index[i]] > 0.0:
+      bot_response = bot_response+ " "+sentence_list[index[i]]
+      response_flag = 1
+      j = j+1
+    if j > 2:
+      break
+
+  if response_flag == 0:
+    bot_response = bot_response+" "+"i have no idea"
+  sentence_list.remove(user_input)
+  return bot_response
+  
+global mode
+
+@client.event
+async def on_ready():
+	print("Online")
+		
+@client.event
+async def on_message(message):
+	if message.author == client.user:
+		return
+
+	if  message.content	== "Enju":		
+		channel = message.channel
+		print("ay", channel)
+		await message.channel.send("https://cdn.discordapp.com/attachments/465662693513232386/973466741558616064/963019179785605201.webp")
+	
+	if  client.user.mentioned_in(message):
+		user_input = message.content
+		#-------------------------------------------------
+		print("message received:", user_input)
+		print(user_input[1:])
+		user_inputs = user_input.split()
+		print(" ".join(user_input[1:]))
+		#user_input.split(",")
+		
+		print(user_input)
+		nltk.download("punkt",quiet=False)
+		w = user_input
+		wiki = "https://en.wikipedia.org/wiki/" +  w[1]
+		article = Article(wiki) 
+		article.download()
+		article.parse()
+		article.nlp()
+		
+		file = open("neu.txt", "a", encoding="utf-8")
+		file.write(str(article.text))
+		file = open("wiki.txt", "a")
+		file.write(str(wiki))
+		print("done downloading")
+	
+	
+	
+		' '.join(user_input).lower()
+		print(user_inputs)
+		channel = message.channel
+		
+		
+		article = open('neu.txt', 'r', encoding="utf-8").readlines()
+		print(article)
+
+		for word in article:
+			article = word.split(',')
+			print("split")
+			text = article
+			sentence_list = nltk.sent_tokenize(str(text))
+		#-------------------------------------------------
+		print(text)
+		await message.channel.send(bot_response(user_input))
+		
+		
+client.run(token, bot=True)
+
+
